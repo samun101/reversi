@@ -1,0 +1,26 @@
+{
+  "name": "reversi",
+  "version": "1.0.0",
+  "description": "game of reversi",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samun101/reversi.git"
+  },
+  "keywords": [
+    "reversu"
+  ],
+  "author": "samundson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/samun101/reversi/issues"
+  },
+  "homepage": "https://github.com/samun101/reversi#readme",
+  "dependencies": {
+    "node-static": "^0.7.11",
+    "socket.io": "^2.3.0"
+  }
+}
