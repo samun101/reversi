@@ -41,7 +41,7 @@ socket.on('join_room_response',function(payload){
 
   //if we're being notified of joining room
   if(payload.socket_id == socket.id){
-    $('#messages').append('<p>Successfuly Joined Lobby</p>');
+//    $('#messages').append('<p>Successfuly Joined Lobby</p>');
     return;
   }
 
@@ -75,7 +75,7 @@ socket.on('join_room_response',function(payload){
 
     }
     else{
-      var buttonC=makeInviteButton();
+      var buttonC = makeInviteButton();
       $('.socket_'+payload.socket_id+'button').replaceWith(buttonC);
       dom_elements.slideDown(1000);
     }
@@ -86,8 +86,7 @@ socket.on('join_room_response',function(payload){
   newNode.slideDown(1000);
 });
 
-
-//when someone leaves the room
+//when someone leaves room
 socket.on('player_disconnected',function(payload){
   if(payload.result =='fail'){
     alert(payload.message);
@@ -95,27 +94,31 @@ socket.on('player_disconnected',function(payload){
   }
 
   //if we're being notified of leaving room
-  if(payload.socket_id==socket_id){
+  if(payload.socket_id == socket.id){
+//    $('#messages').append('<p>Successfuly Joined Lobby</p>');
     return;
   }
 
-  //if someone left animate things out
+  //if someone leaves room remove them
   var dom_elements = $('.socket_'+payload.socket_id);
 
   if(dom_elements.length!=0){
     dom_elements.slideUp(1000);
-
-    }
-    else{
-      var buttonC=makeInviteButton();
-      $('.socket_'+payload.socket_id+'button').replaceWith(buttonC);
-      dom_elements.slideDown(1000);
     }
 
-  var newHTML = '<p>'+payload.username+' just left the lobby</p>';
+  var newHTML = '<p>'+payload.username+' has left the lobby</p>';
   var newNode = $(newHTML);
   $('#messages').append(newNode);
   newNode.slideDown(1000);
+});
+
+
+//when you leave the room
+socket.on('player_disconnected',function(payload){
+  if(payload.result =='fail'){
+    alert(payload.message);
+    return ;
+  }
 });
 
 
