@@ -170,7 +170,7 @@ socket.on('game_start_response',function(payload){
   $('.socket_'+payload.socket_id+' button').replaceWith(newNode);
 
   //go to new page
-  window.location.href = 'game.html='+username+'&game_id='+payload.game_id;
+  window.location.href = 'game.html?username='+username+'&game_id='+payload.game_id;
 });
 
 socket.on('invite_response',function(payload){
@@ -263,3 +263,105 @@ $(function(){
   console.log('***Client Log Message: \'join room\' payload:'+JSON.stringify(payload));
   socket.emit('join_room',payload);
 })
+var old_board=[
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+  ['?','?','?','?','?','?','?','?'],
+];
+var my_color = ' ';
+socket.on('game_update',function(payload){
+  console.log('***Client Log Message: \'game update\'\n\t payload:'+JSON.stringify(payload));
+
+  if(payload.result=='fail'){
+    console.log(payload.message);
+    window.location.href = 'lobby.html?username'+username;
+    alert(payload.message);
+    return;
+  }
+
+  var board = payload.game.board;
+  if('undefined' == typeof board || !board){
+    console.log('internal error: recieved a malformed board update from the server');
+    return;
+  }
+  //update my_color
+  if(socket.id == payload.game.player_white.socket){
+    my_color = 'white';
+  }
+  else if(socket.id == payload.game.player_black.socket){
+    my_color = 'black';
+  }
+  else{
+    window.location.href='lobby.html?username='+username;
+  }
+
+  $('#my_color').html('<h3 id = "my_color">I am '+my_color+'</h3>');
+
+  //animate changes
+  var row,column;
+  for(row = 0;row<8;row++){
+    for(column = 0; column <8;column++){
+      if(old_board[row][column] !=board[row][column]){
+        //?????????????????????????
+        if(old_board[row][column] == '?' && board[row][column] == ' '){
+          $('#'+row+'_'+column).html('<img src="assets/images/empty.gif" alt="empty square"/>');
+        }
+        else if(old_board[row][column] == '?' && board[row][column]== 'w'){
+          $('#'+row+'_'+column).html('<img src="assets/images/empty_to_white.gif" alt="white square"/>' );
+        }
+        else if(old_board[row][column] == '?' && board[row][column]== 'b'){
+          $('#'+row+'_'+column).html('<img src="assets/images/empty_to_black.gif" alt="black square"/>');
+        }
+        //to empty
+        else if(old_board[row][column] == 'w' && board[row][column]== ' '){
+          $('#'+row+'_'+column).html('<img src="assets/images/white_to_empty.gif" alt="empty square"/>');
+        }
+        else if(old_board[row][column] == 'b' && board[row][column]== ' '){
+          $('#'+row+'_'+column).html('<img src="assets/images/black_to_empty.gif" alt="empty square"/>');
+        }
+        //to empty
+        else if(old_board[row][column] == 'w' && board[row][column]== 'b'){
+          $('#'+row+'_'+column).html('<img src="assets/images/white_to_black.gif" alt="black square"/>');
+        }
+        else if(old_board[row][column] == 'b' && board[row][column]== 'w'){
+          $('#'+row+'_'+column).html('<img src="assets/images/black_to_white.gif" alt="white square"/>');
+        }
+        else{
+          $('#'+row+'_'+column).html('<img src="assets/images/error.gif" alt="Somethings wrong"/>');
+        }
+        //setting up interactivity
+        $('#'+row+'_'+column).off('click)');
+        if(board[row][column]==' '){
+          $('#'+row+'_'+column).addClass('hovered_over');
+          $('#'+row+'_'+column).click(function(r,c){
+            return function(){
+              var payload = {};
+              payload.row = r;
+              payload.column = c;
+              payload.color = my_color;
+              console.log('*** Client log Message: \'play_token\' payload: '+JSON.stringify(payload));
+              socket.emit('play_token',payload);
+            };
+          }(row,column));
+        }
+        else{
+          $('#'+row+'_'+column).removeClass('hovered_over');
+        }
+      }
+    }
+  }
+  old_board=board;
+});
+socket.on('play_token_response',function(payload){
+  console.log('***Client log message: \'play_token_response\'\n\tpayload: '+JSON.stringify(payload));
+  if(payload.result =='fail'){
+    console.log(payload.message);
+    alert(payload.message);
+    return;
+  }
+});
