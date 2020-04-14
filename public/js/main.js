@@ -123,7 +123,6 @@ function invite(who){
 
 function uninvite(who){
   var payload = {};
-
   payload.requested_user = who;
   console.log('***Client Log Message: \'uninvite\' payload:'+JSON.stringify(payload));
   socket.emit('uninvite',payload);
@@ -202,6 +201,7 @@ socket.on('invited',function(payload){
 function send_message(){
   var payload ={};
   payload.room = chat_room;
+  payload.username = username;
   payload.message = $('#send_message_holder').val();
   console.log('*** Client Log Message: \'send_message\' payload: '+JSON.stringify(payload));
   socket.emit('send_message',payload);
