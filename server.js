@@ -484,7 +484,8 @@ socket.on('play_token',function(payload){
       }
 
       var row = payload.row;
-      if(('undefined' === typeof row) || row<0 || row>7){
+      console.log(row + ' '+ typeof row);
+      if(('undefined' === typeof row) || row>0 || row<7){
         var error_message = 'didnt specify a valid row'
         log(error_message);
         socket.emit('play_token_response',{
@@ -494,7 +495,7 @@ socket.on('play_token',function(payload){
       }
 
       var column = payload.column;
-      if(('undefined' === typeof colum) || column<0 || column>7){
+      if(('undefined' === typeof colum) || column>0 || column<7){
         var error_message = 'didnt specify a valid column'
         log(error_message);
         socket.emit('play_token_response',{
@@ -512,7 +513,7 @@ socket.on('play_token',function(payload){
                 message:error_message});
         return ;
       }
-      var game = games[game_id];;
+      var game = gamesStored[game_id];;
       if(('undefined' === typeof game) || !game){
         var error_message = 'couldnt find your game'
         log(error_message);
@@ -538,16 +539,16 @@ socket.on('play_token',function(payload){
       send_game_update(socket,game_id,'played a token');
 });
 //code related to game game state
-var games=[];
+var gamesStored = [];
 
 function create_new_game(){
   var new_game ={};
   new_game.player_white={};
   new_game.player_black={};
-  new_game.player_white.socket='';
-  new_game.player_white.username='';
-  new_game.player_black.socket='';
-  new_game.player_black.username='';
+  new_game.player_white.socket = '';
+  new_game.player_white.username = '';
+  new_game.player_black.socket = '';
+  new_game.player_black.username = '';
 
   var d = new Date();
   new_game.last_move_time = d.getTime();
@@ -561,16 +562,16 @@ function create_new_game(){
     [' ',' ',' ','b','w',' ',' ',' '],
     [' ',' ',' ',' ',' ',' ',' ',' '],
     [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' ']
   ];
   return new_game;
 };
 
 function send_game_update(socket, game_id, message){
   //chech if game_id already exists
-  if(('undefined'===typeof games[game_id] || !games[game_id])){
+  if(('undefined' === typeof gamesStored[game_id]) || !gamesStored[game_id]){
     console.log('no game exists, creating '+game_id+ ' for '+socket);
-    games[game_id] = create_new_game();
+    gamesStored[game_id] = create_new_game();
   }
   // make sure only players are present
   var roomObject;
@@ -580,49 +581,51 @@ function send_game_update(socket, game_id, message){
     numClients = roomObject.length;
     if(numClients>2){
       console.log('too many clients in room: '+game_id+' #: '+numClients);
-      if(games[game_id].player_white.socket == roomObject.sockets[0]){
-        games[game_id].player_white.socket = '';
-        games[game_id].player_white.username= '';
+      if(gamesStored[game_id].player_white.socket == roomObject.sockets[0]){
+        gamesStored[game_id].player_white.socket = '';
+        gamesStored[game_id].player_white.username= '';
       }
-      if(games[game_id].player_black.socket == roomObject.sockets[0]){
-        games[game_id].player_black.socket = '';
-        games[game_id].player_black.username= '';
+      if(gamesStored[game_id].player_black.socket == roomObject.sockets[0]){
+        gamesStored[game_id].player_black.socket = '';
+        gamesStored[game_id].player_black.username= '';
       }
       var sacrifice = Object.keys(roomObject.sockets)[0];
       io.of('/').connected[sacrifice].leave(game_id);
     }
-  }while((numClients-1)>2)
+  }while((numClients-1)>2);
   //assign socket a color
-  if((games[game_id].player_white.socket != socket.id)&&(games[game_id].player_black.socket != socket.id)){
+  if((gamesStored[game_id].player_white.socket != socket.id)&&(gamesStored[game_id].player_black.socket != socket.id)){
     console.log('player isnt assigned a color: '+ players[socket.id].username);
-    if((games[game_id].player_black.socket != '')&&(games[game_id].player_white.socket != '')){
-      games[game_id].player_white.socket = '';
-      games[game_id].player_white.username = '';
-      games[game_id].player_black.socket = '';
-      games[game_id].player_black.username = '';
+    if((gamesStored[game_id].player_black.socket != '')&&(gamesStored[game_id].player_white.socket != '')){
+      gamesStored[game_id].player_white.socket = '';
+      gamesStored[game_id].player_white.username = '';
+      gamesStored[game_id].player_black.socket = '';
+      gamesStored[game_id].player_black.username = '';
     }
   }
-  if(games[game_id].player_black.socket == ''){
-    if(games[game_id].player_white.socket != socket.id){
-      games[game_id].player_black.socket = socket.id;
-      games[game_id].player_black.username = players[socket.id].username;
+  if(gamesStored[game_id].player_black.socket == ''){
+    if(gamesStored[game_id].player_white.socket != socket.id){
+      gamesStored[game_id].player_black.socket = socket.id;
+      gamesStored[game_id].player_black.username = players[socket.id].username;
     }
   }
-  else if(games[game_id].player_white.socket == ''){
-    if(games[game_id].player_black.socket != socket.id){
-      games[game_id].player_white.socket = socket.id;
-      games[game_id].player_white.username = players[socket.id].username;
+  if(gamesStored[game_id].player_white.socket == ''){
+    if(gamesStored[game_id].player_black.socket != socket.id){
+      gamesStored[game_id].player_white.socket = socket.id;
+      gamesStored[game_id].player_white.username = players[socket.id].username;
     }
   }
 
   //send game update
   var success_data={
       result:'success',
-      game:games[game_id],
+      game:gamesStored[game_id],
       message:message,
       game_id:game_id
   };
+  console.log(gamesStored);
   io.in(game_id).emit('game_update',success_data);
+
   //check if game is over
 }
 })

@@ -357,6 +357,7 @@ socket.on('game_update',function(payload){
   }
   old_board=board;
 });
+
 socket.on('play_token_response',function(payload){
   console.log('***Client log message: \'play_token_response\'\n\tpayload: '+JSON.stringify(payload));
   if(payload.result =='fail'){
