@@ -19,7 +19,7 @@ var app = http.createServer( function(request,response){
     }).resume();
   }).listen(port);
 console.log('server is running');
-
+var gamesStored = [];
 //setup web socket Server
 //Registry of players and player info
 var players =[];
@@ -485,7 +485,7 @@ socket.on('play_token',function(payload){
 
       var row = payload.row;
       console.log(row + ' '+ typeof row);
-      if(('undefined' === typeof row) || row>0 || row<7){
+      if(/*('undefined' === typeof row) || */ row<0 || row>7){
         var error_message = 'didnt specify a valid row'
         log(error_message);
         socket.emit('play_token_response',{
@@ -495,7 +495,7 @@ socket.on('play_token',function(payload){
       }
 
       var column = payload.column;
-      if(('undefined' === typeof colum) || column>0 || column<7){
+      if(('undefined' === typeof column) || column<0 || column>7){
         var error_message = 'didnt specify a valid column'
         log(error_message);
         socket.emit('play_token_response',{
@@ -539,7 +539,7 @@ socket.on('play_token',function(payload){
       send_game_update(socket,game_id,'played a token');
 });
 //code related to game game state
-var gamesStored = [];
+
 
 function create_new_game(){
   var new_game ={};
@@ -549,10 +549,8 @@ function create_new_game(){
   new_game.player_white.username = '';
   new_game.player_black.socket = '';
   new_game.player_black.username = '';
-
   var d = new Date();
   new_game.last_move_time = d.getTime();
-
   new_game.whose_turn ='white';
   new_game.board = [
     [' ',' ',' ',' ',' ',' ',' ',' '],
