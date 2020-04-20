@@ -1,5 +1,5 @@
 /*functions for things*/
-
+var my_color = ' ';
 //returns value associated with 'which Param as the URL'
 function getURLParameters(whichParam){
   var pageURL=window.location.search.substring(1);
@@ -202,7 +202,7 @@ function send_message(){
   var payload ={};
   payload.room = chat_room;
   payload.username = username;
-  payload.message = $('#send_message_holder').val();
+  $('#send_message_holder').val();
   console.log('*** Client Log Message: \'send_message\' payload: '+JSON.stringify(payload));
   socket.emit('send_message',payload);
 }
@@ -262,7 +262,11 @@ $(function(){
   payload.username=username;
   console.log('***Client Log Message: \'join room\' payload:'+JSON.stringify(payload));
   socket.emit('join_room',payload);
-})
+
+  $('#quit').append('<a href="lobby.html?username='+username+'" class="btn btn-danger btn-default active" roles="button" aria-pressed="true">Quit</a>');
+});
+
+
 var old_board=[
   ['?','?','?','?','?','?','?','?'],
   ['?','?','?','?','?','?','?','?'],
@@ -273,8 +277,10 @@ var old_board=[
   ['?','?','?','?','?','?','?','?'],
   ['?','?','?','?','?','?','?','?'],
 ];
-var my_color = ' ';
+
+
 socket.on('game_update',function(payload){
+
   console.log('***Client Log Message: \'game update\'\n\t payload:'+JSON.stringify(payload));
 
   if(payload.result=='fail'){
@@ -302,14 +308,21 @@ socket.on('game_update',function(payload){
 
   $('#my_color').html('<h3 id = "my_color">I am '+my_color+'</h3>');
 
+  var blacksum = 0;
+  var whitesum =0;
   //animate changes
   var row,column;
   for(row = 0;row<8;row++){
     for(column = 0; column <8;column++){
-      if(old_board[row][column] !=board[row][column]){
-        //?????????????????????????
+      if(board[row][column]=='b'){
+        blacksum++;
+      }
+      else if(board[row][column]=='w'){
+        whitesum++;
+      }
+      if(old_board[row][column] != board[row][column]){
         if(old_board[row][column] == '?' && board[row][column] == ' '){
-          $('#'+row+'_'+column).html('<img src="assets/images/empty.gif" alt="empty square"/>');
+          $('#'+row+'_'+column).html('<img src="assets/images/Empty.gif" alt="empty square"/>');
         }
         else if(old_board[row][column] == '?' && board[row][column]== 'w'){
           $('#'+row+'_'+column).html('<img src="assets/images/empty_to_white.gif" alt="white square"/>' );
@@ -324,11 +337,11 @@ socket.on('game_update',function(payload){
         else if(old_board[row][column] == 'b' && board[row][column]== ' '){
           $('#'+row+'_'+column).html('<img src="assets/images/black_to_empty.gif" alt="empty square"/>');
         }
-        //to empty
-        else if(old_board[row][column] == 'w' && board[row][column]== 'b'){
+        //to full
+        else if(old_board[row][column] == 'w' || old_board[row][column] == ' ' && board[row][column]== 'b'){
           $('#'+row+'_'+column).html('<img src="assets/images/white_to_black.gif" alt="black square"/>');
         }
-        else if(old_board[row][column] == 'b' && board[row][column]== 'w'){
+        else if(old_board[row][column] == 'b' || old_board[row][column] == ' '  && board[row][column] == 'w'){
           $('#'+row+'_'+column).html('<img src="assets/images/black_to_white.gif" alt="white square"/>');
         }
         else{
@@ -355,6 +368,8 @@ socket.on('game_update',function(payload){
       }
     }
   }
+  $('#blacksum').html(blacksum);
+  $('#whitesum').html(whitesum);
   old_board=board;
 });
 
@@ -365,4 +380,16 @@ socket.on('play_token_response',function(payload){
     alert(payload.message);
     return;
   }
+});
+
+socket.on('game_over',function(payload){
+  console.log('***Client log message: \'game_over\'\n\tpayload: '+JSON.stringify(payload));
+  if(payload.result =='fail'){
+    console.log(payload.message);
+    alert(payload.message);
+    return;
+  }
+
+  $('#game_over').html('<h1>Game Over</h1><h2>'+payload.who_won+' won!</h2>');
+  $('#game_over').append('<a href="lobby.html?username='+username+'" class="btn btn-success btn-large active" roles="button" aria-pressed="true">Return to the Lobby</a>');
 });

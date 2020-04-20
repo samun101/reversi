@@ -18,12 +18,15 @@ var app = http.createServer( function(request,response){
       file.serve(request,response);
     }).resume();
   }).listen(port);
+
 console.log('server is running');
 var gamesStored = [];
+
 //setup web socket Server
 //Registry of players and player info
 var players =[];
 var io = require('socket.io').listen(app);
+
 io.sockets.on('connection', function(socket){
   log('Client Connection by '+socket.id);
   function log(){
@@ -35,8 +38,6 @@ io.sockets.on('connection', function(socket){
     socket.emit('log',array);
     socket.broadcast.emit('log',array);
   }
-
-
 
   /*join_room command
     payload:
@@ -429,7 +430,7 @@ io.sockets.on('connection', function(socket){
                 log('game_start successful')
 
               });
-/*play_token command
+  /*play_token command
               payload:
                 'row': 0-7 the row for the token
                 'column': 0-7 the column for the token
@@ -440,9 +441,9 @@ io.sockets.on('connection', function(socket){
               or
                 'result': fail
                 'room': failure message
-*/
-socket.on('play_token',function(payload){
-      log('game_start with' +JSON.stringify(payload));
+  */
+  socket.on('play_token',function(payload){
+      //log('game_start with' +JSON.stringify(payload));
       //make sure payload was sent
       if(('undefined' === typeof payload) || !payload){
         var error_message = 'play_token had no payload, command aborted'
@@ -525,18 +526,22 @@ socket.on('play_token',function(payload){
       var success_data ={
         result: 'success'
       }
+      log(color);
+      log('recieved'+ JSON.stringify(payload));
       socket.emit('play_token_response',success_data);
-      if(color='white'){
+
+      if(color=='white'){
         game.board[row][column] = 'w';
         game.whose_turn = 'black';
       }
-      if(color='black'){
+      if(color=='black'){
         game.board[row][column] = 'b';
         game.whose_turn = 'white';
       }
       var d = new Date();
       game.last_move_time = d.getTime();
       send_game_update(socket,game_id,'played a token');
+    });
 });
 //code related to game game state
 
@@ -625,5 +630,28 @@ function send_game_update(socket, game_id, message){
   io.in(game_id).emit('game_update',success_data);
 
   //check if game is over
+  var row,columm
+  var count=0;
+  for(row=0;row<8;row++){
+    for(column=0;column<8;column++){
+      if(gamesStored[game_id].board[row][column]!=' '){
+        count++;
+      }
+    }
+  }
+
+  if(count ==64){
+    var success_data={
+      result:'success',
+      game:gamesStored[game_id],
+      who_won:'everyone',
+      game_id:game_id
+    };
+    io.in(game_id).emit('game_over',success_data);
+  }
+  //delete old games after 1 hour
+  setTimeout(function(id){
+    return function(){
+      delete games[id];
+    }}(game_id) , 60*60*1000);
 }
-})
