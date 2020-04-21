@@ -488,7 +488,7 @@ io.sockets.on('connection', function(socket){
       }
 
       var row = payload.row;
-      console.log(row + ' '+ typeof row);
+      console.log(row + 0+ typeof row);
       if(/*('undefined' === typeof row) || */ row<0 || row>7){
         var error_message = 'didnt specify a valid row'
         log(error_message);
@@ -554,16 +554,16 @@ io.sockets.on('connection', function(socket){
       socket.emit('play_token_response',success_data);
 
       if(color=='white'){
-        game.board[row][column] = 'w';
-        flip_board('w',row,column,game.board);
+        game.board[row][column] = game.turn_count;
+        flip_board(game.turn_count,row,column,game.board);
         game.whose_turn = 'black';
-        game.legal_moves = calculate_valid_moves('b', game.board);
+        game.legal_moves = calculate_valid_moves(((-1)*game.turn_count), game.board);
       }
       if(color=='black'){
-        game.board[row][column] = 'b';
-        flip_board('b',row,column,game.board);
+        game.board[row][column] = game.turn_count*(-1);
+        flip_board((-1)*game.turn_count,row,column,game.board);
         game.whose_turn = 'white';
-        game.legal_moves = calculate_valid_moves('w', game.board);
+        game.legal_moves = calculate_valid_moves(game.turn_count, game.board);
       }
       var d = new Date();
       game.last_move_time = d.getTime();
@@ -584,35 +584,24 @@ function create_new_game(){
   var d = new Date();
   new_game.last_move_time = d.getTime();
   new_game.whose_turn ='white';
+  new_game.turn_count =3;
   new_game.board = [
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ','w','b',' ',' ',' '],
-    [' ',' ',' ','b','w',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' ']
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,1,-2,0,0,0],
+    [0,0,0,-2,1,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0]
   ];
-new_game.legal_moves = calculate_valid_moves('w',new_game.board);
+new_game.legal_moves = calculate_valid_moves(new_game.turn_count,new_game.board);
 
   return new_game;
 };
 
 
 function valid_move(who, dr, dc, ir, ic, board){
-  var other;
-  if(who === 'b'){
-    other ='w';
-  }
-  else if (who==='w') {
-    other ='b';
-  }
-  else{
-    log('we have some color issues:'+who);
-    return false;
-  }
-
   if(ir+dr<0 || ir+dr>7){
     return false;
   }
@@ -627,8 +616,21 @@ function valid_move(who, dr, dc, ir, ic, board){
   if(ic+dc+dc<0 || ic+dc+dc>7){
     return false;
   }
-  if(board[ir+dr][ic+dc]!=other){
-    return false;
+  if(who<0){
+    if(board[ir+dr][ic+dc] <= 0){
+      return false;
+    }
+    else{
+      return check_line_match(who,dr,dc,ir+dr+dr,ic+dc+dc,board);
+    }
+  }
+  if(who>0){
+    if(board[ir+dr][ic+dc] >= 0){
+      return false;
+    }
+    else{
+      return check_line_match(who,dr,dc,ir+dr+dr,ic+dc+dc,board);
+    }
   }
   return check_line_match(who,dr,dc,ir+dr+dr,ic+dc+dc,board);
 }
@@ -641,31 +643,51 @@ function check_line_match(who,dr,dc,ir,ic,board){
   if(ic+dc<0 || ic+dc>7){
     return false;
   }
-  if(board[ir][ic]===who){
-    return true;
-  }
-  if(board[ir][ic]=== ' '){
+  if(board[ir][ic] == 0){
     return false;
   }
+  if(who>0){
+    if(board[ir][ic]>0){
+      return true;
+    }
+    else{
+      return check_line_match(who,dr,dc,ir+dr,ic+dc,board);
+    }
+  }
+  if(who<0){
+    if(board[ir][ic]<0){
+      return true;
+    }
+    else{
+      return check_line_match(who,dr,dc,ir+dr,ic+dc,board);
+    }
+  }
 
-  return check_line_match(who,dr,dc,ir+dr,ic+dc,board);
 }
 
 
 function calculate_valid_moves(who,board){
+  /*var who;
+  if(TC % 2>0){
+    who = TC;
+  }
+  else if((TC % 2)<=0){
+    who = TC*(-1)
+  }*/
+
   var valid = [
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' '],
-    [' ',' ',' ',' ',' ',' ',' ',' ']
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0]
   ];
   for(var row =0; row<8;row++){
     for(var column =0;column<8;column++){
-      if(board[row][column] ==' '){
+      if(board[row][column] == 0){
         nw = valid_move(who,-1,-1,row,column,board);
         nn = valid_move(who,-1,0,row,column,board);
         ne = valid_move(who,-1,1,row,column,board);
@@ -676,7 +698,7 @@ function calculate_valid_moves(who,board){
         sw = valid_move(who, 1,-1,row,column,board);
         ss = valid_move(who, 1,0,row,column,board);
         se = valid_move(who, 1,1,row,column,board);
-        if(nw||nn||ne||ww||ne||ww||ee||sw||ss||se){
+        if(nw||nn||ne||ww||ne||ee||sw||ss||se){
           valid[row][column]=who;
         }
       }
@@ -693,23 +715,39 @@ function flip_line(who,dr,dc,ir,ic,board){
   if(ic+dc<0 || ic+dc>7){
     return false;
   }
-  if(board[ir+dr][ic+dc]===' '){
+
+  if(board[ir+dr][ic+dc] ==0){
     return false;
   }
-  if(board[ir+dr][ic+dc]===who){
-    return true;
-  }
-  else{
-    if(flip_line(who,dr,dc,ir+dr,ic+dc,board)){
-      board[ir+dr][ic+dc] = who;
+  if(who<0){
+    if(board[ir+dr][ic+dc]<0){
       return true;
     }
     else{
-      return false;
+      if(flip_line(who,dr,dc,ir+dr,ic+dc,board)){
+        board[ir+dr][ic+dc] = (-1)*board[ir+dr][ic+dc];
+        return true;
+      }
+      else{
+        return false;
+      }
+    }
+  }
+  if(who>0){
+    if(board[ir+dr][ic+dc]>0){
+      return true;
+    }
+    else{
+      if(flip_line(who,dr,dc,ir+dr,ic+dc,board)){
+        board[ir+dr][ic+dc] = (-1)*board[ir+dr][ic+dc];
+        return true;
+      }
+      else{
+        return false;
+      }
     }
   }
 }
-
 
 function flip_board(who,row,column,board){
   flip_line(who,-1,-1,row,column,board);//Northern Section
@@ -792,13 +830,13 @@ function send_game_update(socket, game_id, message){
   var white=0;
   for(row=0;row<8;row++){
     for(column=0;column<8;column++){
-      if(gamesStored[game_id].legal_moves[row][column]!=' '){
+      if(gamesStored[game_id].legal_moves[row][column] != 0){
         count++;
       }
-      if(gamesStored[game_id].board[row][column] === 'b'){
+      if(gamesStored[game_id].board[row][column] < 0){
         black++;
       }
-      if(gamesStored[game_id].board[row][column] === 'w'){
+      if(gamesStored[game_id].board[row][column] > 0){
         white++;
       }
     }
