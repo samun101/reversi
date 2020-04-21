@@ -307,7 +307,8 @@ socket.on('game_update',function(payload){
     window.location.href='lobby.html?username='+username;
   }
   $('#header-row').html('<h1>'+payload.game.player_white.username+' vs. '+payload.game.player_black.username+'</h1>');
-  $('#my_color').html('<h3 id = "my_color">I am '+my_color+'</h3>');
+  $('#my_color').html('<h2 id = "my_color">I am '+my_color+'</h2>');
+  $('#my_color').append('<h3> You are on turn '+payload.game.turn_count-4+'</h3>');
   $('#my_color').append('<h4>It is '+payload.game.whose_turn+'\'s turn</h4>');
   $('#my_color').append('<h4>Elapsed time <span id="elapsed"></span></h4>');
 

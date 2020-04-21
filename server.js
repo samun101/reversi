@@ -22,7 +22,7 @@ var app = http.createServer( function(request,response){
   }).listen(port);
 
 console.log('server is running');
-var gamesStored = [];
+
 
 //setup web socket Server
 //Registry of players and player info
@@ -517,7 +517,7 @@ io.sockets.on('connection', function(socket){
                 message:error_message});
         return ;
         }
-      var game = gamesStored[game_id];;
+      var game = games[game_id];;
       if(('undefined' === typeof game) || !game){
         var error_message = 'couldnt find your game'
         log(error_message);
@@ -567,12 +567,13 @@ io.sockets.on('connection', function(socket){
       }
       var d = new Date();
       game.last_move_time = d.getTime();
+      game.turn_count ++;
       send_game_update(socket,game_id,'played a token');
     });
 });
 //code related to game game state
-
-
+var saved_games = [];
+var games = [];
 function create_new_game(){
   var new_game ={};
   new_game.player_white={};
@@ -584,20 +585,52 @@ function create_new_game(){
   var d = new Date();
   new_game.last_move_time = d.getTime();
   new_game.whose_turn ='white';
-  new_game.turn_count =3;
+  new_game.turn_count =5;
   new_game.board = [
     [0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0],
     [0,0,0,1,-2,0,0,0],
-    [0,0,0,-2,1,0,0,0],
+    [0,0,0,-4,3,0,0,0],
     [0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0]
   ];
-new_game.legal_moves = calculate_valid_moves(new_game.turn_count,new_game.board);
-
+  new_game.legal_moves = calculate_valid_moves(new_game.turn_count,new_game.board);
   return new_game;
+};
+
+function save_game(game){
+  var game_to_save = [];
+  var winner;
+  game_to_save.board = game.board;
+  game_to_save.player_white = game.player_white.username;
+  game_to_save.player_black = game.player_black.username;
+  game_to_save.turn_end = game.turn_count;
+  var black=0;
+  var white=0;
+  for(row=0;row<8;row++){
+    for(column=0;column<8;column++){
+      if(game.board[row][column] < 0){
+        black++;
+      }
+      if(game.board[row][column] > 0){
+        white++;
+      }
+    }
+  }
+  if(white>black){
+    winner = 'white';
+  }
+  else if (black>white) {
+    winner = 'black';
+  }
+  else{
+    winner = 'Unknown';
+  }
+  game_to_save.winner = winner;
+  game_to_save.title = white.toString()+' '+game.player_white.username+' vs. ' +black.toString()+ ' '+game.player_black.username;
+  saved_games[game.last_move_time] = game_to_save;
 };
 
 
@@ -636,11 +669,11 @@ function valid_move(who, dr, dc, ir, ic, board){
 }
 
 function check_line_match(who,dr,dc,ir,ic,board){
-  if(ir+dr<0 || ir+dr>7){
+  if(ir<0 || ir+dr>8){
     return false;
   }
 
-  if(ic+dc<0 || ic+dc>7){
+  if(ic<0 || ic+dc>8){
     return false;
   }
   if(board[ir][ic] == 0){
@@ -667,14 +700,6 @@ function check_line_match(who,dr,dc,ir,ic,board){
 
 
 function calculate_valid_moves(who,board){
-  /*var who;
-  if(TC % 2>0){
-    who = TC;
-  }
-  else if((TC % 2)<=0){
-    who = TC*(-1)
-  }*/
-
   var valid = [
     [0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0],
@@ -766,9 +791,9 @@ function flip_board(who,row,column,board){
 
 function send_game_update(socket, game_id, message){
   //chech if game_id already exists
-  if(('undefined' === typeof gamesStored[game_id]) || !gamesStored[game_id]){
+  if(('undefined' === typeof games[game_id]) || !games[game_id]){
     console.log('no game exists, creating '+game_id+ ' for '+socket);
-    gamesStored[game_id] = create_new_game();
+    games[game_id] = create_new_game();
   }
   // make sure only players are present
   var roomObject;
@@ -778,49 +803,49 @@ function send_game_update(socket, game_id, message){
     numClients = roomObject.length;
     if(numClients>2){
       console.log('too many clients in room: '+game_id+' #: '+numClients);
-      if(gamesStored[game_id].player_white.socket == roomObject.sockets[0]){
-        gamesStored[game_id].player_white.socket = '';
-        gamesStored[game_id].player_white.username= '';
+      if(games[game_id].player_white.socket == roomObject.sockets[0]){
+        games[game_id].player_white.socket = '';
+        games[game_id].player_white.username= '';
       }
-      if(gamesStored[game_id].player_black.socket == roomObject.sockets[0]){
-        gamesStored[game_id].player_black.socket = '';
-        gamesStored[game_id].player_black.username= '';
+      if(games[game_id].player_black.socket == roomObject.sockets[0]){
+        games[game_id].player_black.socket = '';
+        games[game_id].player_black.username= '';
       }
       var sacrifice = Object.keys(roomObject.sockets)[0];
       io.of('/').connected[sacrifice].leave(game_id);
     }
   }while((numClients-1)>2);
   //assign socket a color
-  if((gamesStored[game_id].player_white.socket != socket.id) && (gamesStored[game_id].player_black.socket != socket.id)){
+  if((games[game_id].player_white.socket != socket.id) && (games[game_id].player_black.socket != socket.id)){
     console.log('player isnt assigned a color: '+ players[socket.id].username);
-    if((gamesStored[game_id].player_black.socket != '')&&(gamesStored[game_id].player_white.socket != '')){
-      gamesStored[game_id].player_white.socket = '';
-      gamesStored[game_id].player_white.username = '';
-      gamesStored[game_id].player_black.socket = '';
-      gamesStored[game_id].player_black.username = '';
+    if((games[game_id].player_black.socket != '')&&(games[game_id].player_white.socket != '')){
+      games[game_id].player_white.socket = '';
+      games[game_id].player_white.username = '';
+      games[game_id].player_black.socket = '';
+      games[game_id].player_black.username = '';
     }
   }
-  if(gamesStored[game_id].player_black.socket == '' || gamesStored[game_id].player_black.socket == socket.id){
-    if(gamesStored[game_id].player_white.socket != socket.id){
-      gamesStored[game_id].player_black.socket = socket.id;
-      gamesStored[game_id].player_black.username = players[socket.id].username;
+  if(games[game_id].player_black.socket == '' || games[game_id].player_black.socket == socket.id){
+    if(games[game_id].player_white.socket != socket.id){
+      games[game_id].player_black.socket = socket.id;
+      games[game_id].player_black.username = players[socket.id].username;
     }
   }
-  if(gamesStored[game_id].player_white.socket == ''||gamesStored[game_id].player_white.socket == socket.id){
-    if(gamesStored[game_id].player_black.socket != socket.id){
-      gamesStored[game_id].player_white.socket = socket.id;
-      gamesStored[game_id].player_white.username = players[socket.id].username;
+  if(games[game_id].player_white.socket == ''||games[game_id].player_white.socket == socket.id){
+    if(games[game_id].player_black.socket != socket.id){
+      games[game_id].player_white.socket = socket.id;
+      games[game_id].player_white.username = players[socket.id].username;
     }
   }
 
   //send game update
   var success_data={
       result:'success',
-      game:gamesStored[game_id],
+      game:games[game_id],
       message:message,
       game_id:game_id
   };
-  console.log(gamesStored);
+  console.log(games);
   io.in(game_id).emit('game_update',success_data);
 
   //check if game is over
@@ -830,13 +855,13 @@ function send_game_update(socket, game_id, message){
   var white=0;
   for(row=0;row<8;row++){
     for(column=0;column<8;column++){
-      if(gamesStored[game_id].legal_moves[row][column] != 0){
+      if(games[game_id].legal_moves[row][column] != 0){
         count++;
       }
-      if(gamesStored[game_id].board[row][column] < 0){
+      if(games[game_id].board[row][column] < 0){
         black++;
       }
-      if(gamesStored[game_id].board[row][column] > 0){
+      if(games[game_id].board[row][column] > 0){
         white++;
       }
     }
@@ -855,15 +880,17 @@ function send_game_update(socket, game_id, message){
     }
     var success_data={
       result:'success',
-      game:gamesStored[game_id],
+      game:games[game_id],
       who_won:winner,
       game_id:game_id
     };
+    save_game(games[game_id]);
+    console.log(saved_games);
     io.in(game_id).emit('game_over',success_data);
   }
   //delete old games after 1 hour
   setTimeout(function(id){
     return function(){
-      delete gamesStored[id];
+      delete games[id];
     }}(game_id) , 60*60*1000);
 }
