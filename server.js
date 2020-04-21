@@ -824,6 +824,6 @@ function send_game_update(socket, game_id, message){
   //delete old games after 1 hour
   setTimeout(function(id){
     return function(){
-      delete games[id];
+      delete gamesStored[id];
     }}(game_id) , 60*60*1000);
 }
