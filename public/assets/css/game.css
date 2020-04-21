@@ -1,6 +1,7 @@
 body{
-  background-image: url('../images/purple.png')
+  background-color: rgb(255,200,255,0);
 }
+
 table#game_board{
   margin: auto;
   border-style: solid;
