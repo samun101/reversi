@@ -19,14 +19,21 @@
     <div class='container-fluid text-center'>
       <div class='row'>
         <div class='col' id='header-row'>
+          <h1>Replay Viewer</h1>
         </div>
       </div>
       <div class='row'>
-        <div class='offset-2 col text-center'>
-          <h3 id='my_color'></h3>
+        <div class='col offset-2'>
+          <button onclick='request_replays()' class='align-center btn btn-default btn-primary'>request</button>
         </div>
         <div class='col-2'>
           <h3 id='quit'></h3>
+        </div>
+      </div>
+      <div class='row'>
+        <div class='col offset-2'>
+            <select id='saved_games'></select>
+            <button onclick='select_replay()'>submit</button>
         </div>
       </div>
       <div class='row'>

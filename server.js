@@ -570,10 +570,157 @@ io.sockets.on('connection', function(socket){
       game.turn_count ++;
       send_game_update(socket,game_id,'played a token');
     });
+
+
+  /*save_game command
+              payload:
+                'game_id': 0-7 the row for the token
+              save_game_response:
+                'result':'success',
+              or
+                'result': fail
+                'room': failure message
+  */
+  socket.on('save_game', function(payload){
+      //log('game_start with' +JSON.stringify(payload));
+      log('trying to save '+JSON.stringify(payload));
+      //make sure payload was sent
+      if(('undefined' === typeof payload) || !payload){
+        var error_message = 'save_game had no payload, command aborted'
+        log(error_message);
+        socket.emit('save_game_response',{
+                result:'fail',
+                message:error_message});
+            return ;
+        }
+        //make sure we have a real game id
+        var game_id = payload.game_id;
+        if(('undefined' === typeof game_id) || !game_id){
+          var error_message = 'no game_id sent with payload'
+          log(error_message);
+          socket.emit('save_game_response',{
+                  result:'fail',
+                  message:error_message});
+          return ;
+        }
+        var game;
+        for(finding_game in games){
+          if(games[finding_game].last_move_time == game_id){
+            game = games[finding_game];
+          }
+        }
+        if(('undefined' === typeof game) || !game){
+          var error_message = 'no game found with game_id'
+          log(error_message);
+          socket.emit('save_game_response',{
+                  result:'fail',
+                  message:error_message});
+          return ;
+        }
+        if(saved_games.includes(game.last_move_time)){
+          var error_message = 'game alread saved'
+          log(error_message);
+          socket.emit('save_game_response',{
+                  result:'fail',
+                  message:error_message});
+              return ;
+        }
+        save_game(game);
+        if(!saved_games_index.includes(game_id)){
+          saved_games_index[game_id] = saved_games[game_id].title;
+        }
+        var success_data ={
+          result: 'success'
+        }
+        socket.emit('save_game_response', success_data);
+        //console.log(saved_games);
+        console.log(saved_games_index);
+  });
+
+  /*replay_games command
+              payload:
+                'username': the username of the user
+              save_game_response:
+                'result':'success',
+              or
+                'result': fail
+                'room': failure message
+  */
+  socket.on('replay_games', function(payload){
+    if(('undefined' === typeof payload) || !payload){
+      var error_message = 'replay_games had no payload, command aborted'
+      log(error_message);
+      socket.emit('replay_games_response',{
+              result:'fail',
+              message:error_message});
+          return ;
+      }
+      if(('undefined' === typeof payload.username) || !payload.username){
+        var error_message = 'no username specified, command aborted'
+        log(error_message);
+        socket.emit('replay_games_response',{
+                result:'fail',
+                message:error_message});
+            return ;
+        }
+
+      var socket_id;
+      for(var i in players){
+        if(players[i].username == payload.username){
+          socket_id == players[i].socket_id;
+        }
+      }
+      if(('undefined'))
+      socket.emit('replay_games_response',{
+              result: 'success',
+      })
+      var paylord = send_saved_games(socket_id);
+      console.log(paylord)
+      socket.emit('saved_games',paylord);
+  });
+
+  /*request_game command
+              payload:
+                'requested_game': the game the userr wants to replay
+              save_game_response:
+                'result':'success',
+              or
+                'result': fail
+                'room': failure message
+  */
+  socket.on('request_game', function(payload){
+    console.log(payload);
+    if(('undefined' === typeof payload) || !payload){
+      var error_message = 'request_game had no payload, command aborted'
+      log(error_message);
+      socket.emit('request_game_response',{
+              result:'fail',
+              message:error_message});
+          return ;
+      }
+      if(('undefined') === typeof payload.requested_game || !payload.requested_game){
+        var error_message = 'request_game hasnt requested a game, command aborted'
+        log(error_message);
+        socket.emit('request_game_response',{
+                result:'fail',
+                message:error_message});
+            return ;
+      }
+      var response ={};
+      response.game_id = payload.requested_game;
+      for(var i in saved_games[payload.requested_game]){
+        response[i] = saved_games[payload.requested_game][i];
+      }
+      console.log(response);
+      socket.emit('request_game_response',response);
+    });
 });
+
 //code related to game game state
 var saved_games = [];
+var saved_games_index = [];
 var games = [];
+
 function create_new_game(){
   var new_game ={};
   new_game.player_white={};
@@ -632,7 +779,6 @@ function save_game(game){
   game_to_save.title = white.toString()+' '+game.player_white.username+' vs. ' +black.toString()+ ' '+game.player_black.username;
   saved_games[game.last_move_time] = game_to_save;
 };
-
 
 function valid_move(who, dr, dc, ir, ic, board){
   if(ir+dr<0 || ir+dr>7){
@@ -697,7 +843,6 @@ function check_line_match(who,dr,dc,ir,ic,board){
   }
 
 }
-
 
 function calculate_valid_moves(who,board){
   var valid = [
@@ -787,7 +932,6 @@ function flip_board(who,row,column,board){
   flip_line(who, 1, 1,row,column,board);
 
 }
-
 
 function send_game_update(socket, game_id, message){
   //chech if game_id already exists
@@ -884,8 +1028,8 @@ function send_game_update(socket, game_id, message){
       who_won:winner,
       game_id:game_id
     };
-    save_game(games[game_id]);
-    console.log(saved_games);
+//    save_game(games[game_id]);
+
     io.in(game_id).emit('game_over',success_data);
   }
   //delete old games after 1 hour
@@ -893,4 +1037,13 @@ function send_game_update(socket, game_id, message){
     return function(){
       delete games[id];
     }}(game_id) , 60*60*1000);
+}
+
+function send_saved_games(socket_id){
+  var payload = {};
+  for(var i in saved_games_index){
+    payload[i] = saved_games_index[i];
+  }
+  console.log(payload);
+  return payload;
 }
