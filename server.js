@@ -571,7 +571,6 @@ io.sockets.on('connection', function(socket){
       send_game_update(socket,game_id,'played a token');
     });
 
-
   /*save_game command
               payload:
                 'game_id': 0-7 the row for the token
@@ -641,7 +640,7 @@ io.sockets.on('connection', function(socket){
               payload:
                 'username': the username of the user
               save_game_response:
-                'result':'success',
+                copies then sends the saved_games_index array.
               or
                 'result': fail
                 'room': failure message
@@ -678,12 +677,7 @@ io.sockets.on('connection', function(socket){
           }
         }
       }
-      if(('undefined'))
-      socket.emit('replay_games_response',{
-              result: 'success',
-      })
       var paylord = send_saved_games(socket_id);
-      console.log(paylord)
       socket.emit('saved_games',paylord);
   });
 
@@ -692,6 +686,12 @@ io.sockets.on('connection', function(socket){
                 'requested_game': the game the userr wants to replay
               save_game_response:
                 'result':'success',
+                'board': the board of the requested game
+                'player_white': the white player of the requested game
+                'player_black': the black player of the requested game
+                'turn_end': the last turn of the requested game
+                'winner': winner of the requested game
+                'title': title of the requested game
               or
                 'result': fail
                 'room': failure message
@@ -727,6 +727,10 @@ io.sockets.on('connection', function(socket){
                   'turn': the turn the user wants
                 save_game_response:
                   'result':'success',
+                  'board': board of the turn currently at in replay
+                  'turn': turn currently at in replay
+                  'end_turn': final turn in the given replay
+                  'game_id': if of the replayed game (time of completion)
                 or
                   'result': fail
                   'room': failure message
@@ -1128,6 +1132,5 @@ function send_saved_games(socket_id){
   for(var i in saved_games_index){
     payload[i] = saved_games_index[i];
   }
-  console.log(payload);
   return payload;
 }
