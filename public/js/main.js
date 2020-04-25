@@ -143,56 +143,12 @@ socket.on('player_disconnected',function(payload){
 
 socket.on('request_game_response',function(payload){
   console.log(JSON.stringify(payload));
-  var old_board =[
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0]]
+  replay_id=payload.game_id;
   var board = payload.board;
-  var row,column;
-  for(row = 0;row<8;row++){
-    for(column = 0; column <8;column++){
-      if(old_board[row][column] != board[row][column]){
-        //to empty
-      if(old_board[row][column] == 0 && board[row][column]== 0){
-          $('#'+row+'_'+column).html('<img src="assets/images/white_to_empty.gif" alt="empty square"/>');
-        }
-        else if(old_board[row][column]<0 && board[row][column]== 0){
-          $('#'+row+'_'+column).html('<img src="assets/images/black_to_empty.gif" alt="empty square"/>');
-        }
-        //to full
-        else if((old_board[row][column]>0 || old_board[row][column] == 0) && board[row][column]<0){
-          $('#'+row+'_'+column).html('<img src="assets/images/white_to_black.gif" alt="black square"/>');
-        }
-        else if((old_board[row][column]<0 || old_board[row][column] == 0)  && board[row][column]>0){
-          $('#'+row+'_'+column).html('<img src="assets/images/black_to_white.gif" alt="white square"/>');
-        }
-        else{
-          $('#'+row+'_'+column).html('<img src="assets/images/error.gif" alt="Somethings wrong"/>');
-        }
-      }
-      }
-    }
+  $('#request_games').hide(1000);
+  $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+payload.game_id+','+5+')">Next Turn</button>')
+  display_board(board);
 });
-
-function invite(who){
-  var payload = {};
-
-  payload.requested_user = who;
-  console.log('***Client Log Message: \'invite\' payload:'+JSON.stringify(payload));
-  socket.emit('invite',payload);
-}
-
-function uninvite(who){
-  var payload = {};
-  payload.requested_user = who;
-  console.log('***Client Log Message: \'uninvite\' payload:'+JSON.stringify(payload));
-  socket.emit('uninvite',payload);
-}
 
 socket.on('uninvite_response',function(payload){
   if(payload.result=='fail'){
@@ -273,15 +229,44 @@ socket.on('saved_games',function(payload){
   $('.requesting_game').html('<button type="submit" class="btn btn-default btn-primary"> Send</button>')
 });
 
-
-//when you leave the room
-/*socket.on('player_disconnected',function(payload){
-  if(payload.result =='fail'){
+socket.on('send_message_response',function(payload){
+  if(payload.result=='fail'){
     alert(payload.message);
-    return ;
+    return;
   }
+  var newHTML = '<p><b> '+payload.username+' says:</b> '+JSON.stringify(payload.message)+'</p>'
+  var newNode = $(newHTML)
+  newNode.hide();
+  $('#messages').append(newNode);
+  newNode.slideDown(1000);
 });
-*/
+
+socket.on('replay_turn_response',function(payload){
+  if(payload.result=='fail'){
+    alert(payload.message);
+    return;
+  }
+  console.log(JSON.stringify(payload));
+  replay_id = payload.game_id;
+  var board = payload.board;
+  if(payload.turn <= 5){
+  //  reset_board(board);
+    $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+replay_id+','+(payload.turn+1)+')">Next Turn</button>');
+    $('#turn_buttons_next').html('');
+  }
+  else if (payload.turn >= payload.end_turn) {
+    $('#turn_buttons_next').html('<button class="btn btn-outline-info" onclick="go_to_turn('+replay_id+','+(payload.turn-1)+')">Last Turn</button>');
+    $('#turn_buttons_last').html('');
+  }
+  else{
+    $('#turn_buttons_next').html('<button class="btn btn-outline-info" onclick="go_to_turn('+replay_id+','+(payload.turn-1)+')">Last Turn</button>');
+    $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+replay_id+','+(payload.turn+1)+')">Next Turn</button>');
+  }
+  $('#turn_counter').html('<h3> You are viewing the results of turn '+(payload.turn - 5)+'</h3>');
+  reset_board(board);
+  display_board(board);
+})
+
 function select_replay(){
   var payload = {};
   var game_replay = $('#saved_games').val();
@@ -298,23 +283,41 @@ function send_to_save(game){
   $('#save_game_button').html('<button type="button" class="btn-outline-primary btn-large">Game Saved</button>');
 }
 
-socket.on('send_message_response',function(payload){
-  if(payload.result=='fail'){
-    alert(payload.message);
-    return;
+function reset_board(game){
+  board =[
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0]]
+  var row,column;
+  for(row = 0;row<8;row++){
+    for(column = 0; column <8;column++){
+      //to empty
+      $('#'+row+'_'+column).html('<img src="assets/images/white_to_empty.gif" alt="empty square"/>');
+    }
   }
-  var newHTML = '<p><b> '+payload.username+' says:</b> '+JSON.stringify(payload.message)+'</p>'
-  var newNode = $(newHTML)
-  newNode.hide();
-  $('#messages').append(newNode);
-  newNode.slideDown(1000);
-});
+}
+
 function request_replays(){
   var payload ={};
   payload.username = username;
+
   console.log('requesting replays from server');
   socket.emit('replay_games',payload);
 }
+
+function go_to_turn(game_id,turn){
+  var payload ={}
+  payload.game_id = game_id;
+  payload.turn = turn;
+  console.log(payload);
+  socket.emit('replay_turn',payload);
+}
+
 function send_message(){
   var payload ={};
   payload.room = chat_room;
@@ -323,11 +326,13 @@ function send_message(){
   console.log('*** Client Log Message: \'send_message\' payload: '+JSON.stringify(payload));
   socket.emit('send_message',payload);
 }
+
 function makeReplayButton(socket_id){
   var newHTML = '<button type = \'button\' class=\'btn-outline-primary\'>View Replays</button>';
   var newNode = $(newHTML);
   newNode.click(function(){
     window.location.href = 'replays.html?username='+username;
+    request_replays();
   });
   return newNode;
 }
@@ -366,6 +371,67 @@ function makeEngageButton(){
   return newNode;
 }
 
+function display_board(board){
+  old_board =[
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0]]
+  var row,column;
+  var blacksum =0;
+  var whitesum =0;
+  for(row = 0;row<8;row++){
+    for(column = 0; column <8;column++){
+      if(board[row][column]<0){
+        blacksum++;
+      }
+      else if(board[row][column]>0){
+        whitesum++;
+      }
+      if(old_board[row][column] != board[row][column]){
+        //to empty
+        if(board[row][column]== 0){
+            $('#'+row+'_'+column).html('<img src="assets/images/white_to_empty.gif" alt="empty square"/>');
+          }
+          else if(old_board[row][column]<0 && board[row][column]== 0){
+            $('#'+row+'_'+column).html('<img src="assets/images/black_to_empty.gif" alt="empty square"/>');
+          }
+          //to full
+          else if(old_board[row][column] == 0 && board[row][column]<0){
+            $('#'+row+'_'+column).html('<img src="assets/images/empty_to_black.gif" alt="black square"/>');
+          }
+          else if(old_board[row][column] == 0  && board[row][column]>0){
+            $('#'+row+'_'+column).html('<img src="assets/images/empty_to_white.gif" alt="white square"/>');
+          }
+          else{
+            $('#'+row+'_'+column).html('<img src="assets/images/error.gif" alt="Somethings wrong"/>');
+          }
+      }
+    }
+  }
+
+  $('#blacksum').html(blacksum);
+  $('#whitesum').html(whitesum);
+}
+
+function invite(who){
+  var payload = {};
+
+  payload.requested_user = who;
+  console.log('***Client Log Message: \'invite\' payload:'+JSON.stringify(payload));
+  socket.emit('invite',payload);
+}
+
+function uninvite(who){
+  var payload = {};
+  payload.requested_user = who;
+  console.log('***Client Log Message: \'uninvite\' payload:'+JSON.stringify(payload));
+  socket.emit('uninvite',payload);
+}
 
 $(function(){
   var payload = {};
@@ -376,7 +442,6 @@ $(function(){
 
   $('#quit').append('<a href="lobby.html?username='+username+'" class="btn btn-danger btn-default active" roles="button" aria-pressed="true">Quit</a>');
 });
-
 
 var old_board=[
   ['?','?','?','?','?','?','?','?'],
