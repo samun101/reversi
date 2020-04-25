@@ -233,7 +233,6 @@ socket.on('saved_games',function(payload){
     $('#saved_games').append($('<option value="'+i+'">'+payload[i]+'</option>'));
   }
   $('.requesting_game').html('<button type="submit" class="btn btn-default btn-primary"> Send</button>')
-  $('#request_games').hide(1000);
 });
 
 socket.on('send_message_response',function(payload){
@@ -416,7 +415,7 @@ socket.on('game_over',function(payload){
 
   $('#game_over').html('<h1>Game Over</h1><h2>'+payload.who_won+'</h2>');
   $('#game_over_button').html('<a href="lobby.html?username='+username+'" class="btn btn-success btn-large active" roles="button" aria-pressed="true">Return to the Lobby</a>');
-  var newNode = $('<button type="button" class="btn btn-primary btn-large active">Save Game</button>');
+  var newNode = $('<button type="button" class="btn btn-warning btn-large active">Save Game</button>');
   newNode.click(send_to_save(payload.game));
   $('#save_game_button').html(newNode);
 });
@@ -468,8 +467,6 @@ function reset_board(game){
 
 function request_replays(){
   var payload ={};
-  payload.username = username;
-
   console.log('requesting replays from server');
   socket.emit('replay_games',payload);
 }
@@ -487,6 +484,7 @@ function send_message(){
   payload.room = chat_room;
   payload.username = username;
   payload.message = $('#send_message_holder').val();
+  //$('#send_message_holder').val() = "";
   console.log('*** Client Log Message: \'send_message\' payload: '+JSON.stringify(payload));
   socket.emit('send_message',payload);
 }
@@ -494,8 +492,9 @@ function send_message(){
 function makeReplayButton(socket_id){
   var newHTML = '<button type = \'button\' class=\'btn-outline-primary\'>View Replays</button>';
   var newNode = $(newHTML);
+  var payload ={};
   newNode.click(function(){
-    window.location.href = 'replays.html?username='+username;
+    window.location.href = 'replays.html?username='+username+'&game_id=replays';
     request_replays();
   });
   return newNode;

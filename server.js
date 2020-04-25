@@ -122,8 +122,11 @@ io.sockets.on('connection', function(socket){
     }
 
     log('join_room success');
-    if(room !== 'lobby' && room !== 'replay'){
+    if(room !== 'lobby' && room !== 'replays'){
       send_game_update(socket,room,'initial update');
+    }
+    else if (room=='replays') {
+      socket.emit('saved_games',send_saved_games(socket));
     }
   });
 
@@ -374,64 +377,96 @@ io.sockets.on('connection', function(socket){
                 'room': failure message
 */
   socket.on('game_start',function(payload){
-                log('game_start with' +JSON.stringify(payload));
-                //make sure payload was sent
-                if(('undefined' === typeof payload) || !payload){
-                  var error_message = 'uninvite had no payload, command aborted'
-                  log(error_message);
-                  socket.emit('game_start_response',{
-                          result:'fail',
-                          message:error_message});
-                  return ;
-                }
-                //message can be traced to a username
-                var username = players[socket.id].username;
-                if(('undefined' === typeof username) || !username){
-                  var error_message = 'fame_start cant identify the person'
-                  log(error_message);
-                  socket.emit('game_start_response',{
-                          result:'fail',
-                          message:error_message});
-                  return ;
-                }
+    log('game_start with' +JSON.stringify(payload));
+    //make sure payload was sent
+    if(('undefined' === typeof payload) || !payload){
+      var error_message = 'uninvite had no payload, command aborted'
+      log(error_message);
+      socket.emit('game_start_response',{
+              result:'fail',
+              message:error_message});
+      return ;
+    }
+    //message can be traced to a username
+    var username = players[socket.id].username;
+    if(('undefined' === typeof username) || !username){
+      var error_message = 'fame_start cant identify the person'
+      log(error_message);
+      socket.emit('game_start_response',{
+              result:'fail',
+              message:error_message});
+      return ;
+    }
 
-                var requested_user = payload.requested_user;
-                if(('undefined' === typeof requested_user) || !requested_user) {
-                  var error_message = 'game start didnt request a user'
-                  log(error_message);
-                  socket.emit('game_start_response',{
-                          result:'fail',
-                          message:error_message});
-                  return ;
-                }
+    var requested_user = payload.requested_user;
+    if(('undefined' === typeof requested_user) || !requested_user) {
+      var error_message = 'game start didnt request a user'
+      log(error_message);
+      socket.emit('game_start_response',{
+              result:'fail',
+              message:error_message});
+      return ;
+    }
 
-                var room =players[socket.id].room;
-                var roomObject = io.sockets.adapter.rooms[room];
+    var room =players[socket.id].room;
+    var roomObject = io.sockets.adapter.rooms[room];
 
-                if(!roomObject.sockets.hasOwnProperty(requested_user)){
-                  var error_message = 'game_start requested a user that wasnt in the room command aborted';
-                  log(error_message)
-                  socket.emit('game_start_response',{
-                    result:'fail',
-                    message:error_message})
-                }
-                var game_id=Math.floor((1+Math.random())*0x10000).toString(16).substring(1);
-                var success_data = {
-                  results: 'success',
-                  socket_id: requested_user,
-                  game_id: game_id
-                };
-                socket.emit('game_start_response',success_data);
-                var success_data = {
-                  results: 'success',
-                  socket_id: socket.id,
-                  game_id: game_id
-                };
+    if(!roomObject.sockets.hasOwnProperty(requested_user)){
+      var error_message = 'game_start requested a user that wasnt in the room command aborted';
+      log(error_message)
+      socket.emit('game_start_response',{
+        result:'fail',
+        message:error_message})
+    }
+    var game_id=Math.floor((1+Math.random())*0x10000).toString(16).substring(1);
+    var success_data = {
+      results: 'success',
+      socket_id: requested_user,
+      game_id: game_id
+    };
+    socket.emit('game_start_response',success_data);
+    var success_data = {
+      results: 'success',
+      socket_id: socket.id,
+      game_id: game_id
+    };
 
-                socket.to(requested_user).emit('game_start_response',success_data);
-                log('game_start successful')
+    socket.to(requested_user).emit('game_start_response',success_data);
+    log('game_start successful')
 
-              });
+  });
+
+  /*replay_games command
+              payload:
+                'username': the username of the user
+              save_game_response:
+                copies then sends the saved_games_index array.
+              or
+                'result': fail
+                'room': failure message
+*/
+  socket.on('replay_games', function(payload){
+    if(('undefined' === typeof payload) || !payload){
+      var error_message = 'replay_games had no payload, command aborted'
+      log(error_message);
+      socket.emit('replay_games_response',{
+              result:'fail',
+              message:error_message});
+          return ;
+      }
+      if(('undefined' === typeof payload.username) || !payload.username){
+        var error_message = 'no username specified, command aborted'
+        log(error_message);
+        socket.emit('replay_games_response',{
+                result:'fail',
+                message:error_message});
+            return ;
+        }
+      var room =players[socket.id].room;
+      var roomObject = io.sockets.adapter.rooms[room];
+      var paylord = send_saved_games(socket.id);
+      socket.emit('saved_games',paylord);
+  });
 
   /*play_token command
               payload:
@@ -616,7 +651,7 @@ io.sockets.on('connection', function(socket){
                   message:error_message});
           return ;
         }
-        if(saved_games.includes(game.last_move_time)){
+        if(saved_games.hasOwnProperty(game.last_move_time)){
           var error_message = 'game alread saved'
           log(error_message);
           socket.emit('save_game_response',{
@@ -625,7 +660,7 @@ io.sockets.on('connection', function(socket){
               return ;
         }
         save_game(game);
-        if(!saved_games_index.includes(game_id)){
+        if(!saved_games_index.hasOwnProperty(game_id)){
           saved_games_index[game_id] = saved_games[game_id].title;
         }
         var success_data ={
@@ -634,51 +669,6 @@ io.sockets.on('connection', function(socket){
         socket.emit('save_game_response', success_data);
         //console.log(saved_games);
         console.log(saved_games_index);
-  });
-
-  /*replay_games command
-              payload:
-                'username': the username of the user
-              save_game_response:
-                copies then sends the saved_games_index array.
-              or
-                'result': fail
-                'room': failure message
-*/
-  socket.on('replay_games', function(payload){
-    if(('undefined' === typeof payload) || !payload){
-      var error_message = 'replay_games had no payload, command aborted'
-      log(error_message);
-      socket.emit('replay_games_response',{
-              result:'fail',
-              message:error_message});
-          return ;
-      }
-      if(('undefined' === typeof payload.username) || !payload.username){
-        var error_message = 'no username specified, command aborted'
-        log(error_message);
-        socket.emit('replay_games_response',{
-                result:'fail',
-                message:error_message});
-            return ;
-        }
-
-      var socket_id;
-      for(var i in players){
-        if(players[i].username == payload.username){
-          if(players[i].room == 'lobby'){
-            var paylads = {
-              username: payload.username,
-              socket_id: i
-            };
-            socket_id == players[i].socket_id;
-            players[i].room = 'replay'
-            io.in('lobby').emit('player_disconnected',paylads);
-          }
-        }
-      }
-      var paylord = send_saved_games(socket_id);
-      socket.emit('saved_games',paylord);
   });
 
   /*request_game command
@@ -805,8 +795,23 @@ io.sockets.on('connection', function(socket){
 });
 
 //code related to game game state
-var saved_games = [];
-var saved_games_index = [];
+var saved_games = {
+  101 : {
+    board : [[1,1,1,0,0,0,0,0],
+      [1,0,0,0,0,0,0,0],
+      [1,1,1,0,0,0,0,0],
+      [0,0,1,0,-2,-2,-2,-2],
+      [1,1,1,0,-2,0,0,-2],
+      [0,0,0,0,-2,-2,-2,-2],
+      [0,0,0,0,-2,0,0,-2],
+      [0,0,0,0,-2,0,0,-2]],
+      player_white:'Samundson',
+      player_black:'Samun101',
+      turn_end: 2,
+      winner:'Samundson',
+      title:'Example_Game'},
+    }
+var saved_games_index = {101:'Example_Game'};
 var games = [];
 
 function create_new_game(){
