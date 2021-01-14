@@ -35,6 +35,7 @@ const SavedGame = mongoose.model('savedGame',{
 console.log('server is running');
 
 mongoose.connect('mongodb+srv://dbSamun:warriors101@cluster0.la2dl.mongodb.net/reversi?retryWrites=true&w=majority');
+mongoose.set('bufferCommands',false);
 /*
 function testing(socket){
 
