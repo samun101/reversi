@@ -1,3 +1,4 @@
+
 /*functions for things*/
 
 //returns value associated with 'which Param as the URL'
@@ -156,11 +157,12 @@ socket.on('player_disconnected',function(payload){
 });
 
 socket.on('request_game_response',function(payload){
-//  console.log(JSON.stringify(payload));
-  replay_id=payload[0].game_id;
+  console.log(payload[0]);
+  replay=payload[0].ident;
   var board = payload[0].board;
   reset_board(board);
-  $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+payload[0].game_id+','+5+')">Next Turn</button>')
+  console.log(replay)
+  $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+replay+','+5+')">Next Turn</button>');
   display_board(board);
 });
 
@@ -249,12 +251,13 @@ socket.on('send_message_response',function(payload){
 });
 
 socket.on('replay_turn_response',function(payload){
+  console.log(payload);
   if(payload.result=='fail'){
     alert(payload.message);
     return;
   }
-  console.log(JSON.stringify(payload));
-  replay_id = payload.game_id;
+  console.log(payload)
+  replay_id = payload.game;
   var board = payload.board;
   if(payload.turn <= 5){
   //  reset_board(board);
@@ -467,15 +470,16 @@ function reset_board(game){
   }
 }
 
-function request_replays(){
+function request_(){
   var payload ={};
-  console.log('requesting replays from server');
+  console.log('requesting  from server');
   socket.emit('replay_games',payload);
 }
 
-function go_to_turn(game_id,turn){
+function go_to_turn(game, turn){
+  console.log("getting here")
   var payload ={}
-  payload.game_id = game_id;
+  payload.game = game;
   payload.turn = turn;
   console.log(payload);
   socket.emit('replay_turn',payload);
@@ -492,12 +496,12 @@ function send_message(){
 }
 
 function makeReplayButton(socket_id){
-  var newHTML = '<button type = \'button\' class=\'btn-outline-primary\'>View Replays</button>';
+  var newHTML = '<button type = \'button\' class=\'btn-outline-primary\'>View </button>';
   var newNode = $(newHTML);
   var payload ={};
   newNode.click(function(){
     window.location.href = 'replays.html?username='+username+'&game_id=replays';
-    request_replays();
+    request_();
   });
   return newNode;
 }

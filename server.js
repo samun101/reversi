@@ -35,7 +35,7 @@ const SavedGame = mongoose.model('savedGame',{
 console.log('server is running');
 
 mongoose.connect('mongodb+srv://dbSamun:warriors101@cluster0.la2dl.mongodb.net/reversi?retryWrites=true&w=majority');
-mongoose.set('bufferCommands',false);
+//mongoose.set('bufferCommands',false);
 /*
 function testing(socket){
 
@@ -741,7 +741,8 @@ io.sockets.on('connection', function(socket){
       if(err)
         return console.log(err);
 //      console.log("sent")
-//      console.log(JSON.stringify(testing))
+      hold_game(testing);
+      //console.log(saved_games)
       socket.emit('request_game_response', testing);
      })
 
@@ -771,7 +772,7 @@ io.sockets.on('connection', function(socket){
                 message:error_message});
             return ;
         }
-        if(('undefined') === typeof payload.game_id || !payload.game_id){
+        if(('undefined') === typeof payload.game || !payload.game){
           var error_message = 'replay_turn hasnt requested a game, command aborted'
           log(error_message);
           socket.emit('replay_turn_response',{
@@ -799,7 +800,8 @@ io.sockets.on('connection', function(socket){
           [0,0,0,0,0,0,0,0],
           [0,0,0,0,0,0,0,0]
         ];
-        var board = saved_games[payload.game_id].board
+    //    console.log(saved_games[payload.game])
+        var board = saved_games[payload.game].board
         var turn=payload.turn;
         var who;
         for(var i=1; i<turn;i++){
@@ -825,7 +827,8 @@ io.sockets.on('connection', function(socket){
         response.board = pboard;
         response.turn = payload.turn;
         response.end_turn = saved_games[payload.game_id].turn_end;
-        response.game_id = payload.game_id;
+        response.game = payload.game;
+        console.log(response)
         socket.emit('replay_turn_response',response);
       });
 });
@@ -912,6 +915,9 @@ function save_game(game){
   saved_games[game.last_move_time] = game_to_save;
 };
 
+function hold_game(game){
+  saved_games[game.ident]=game
+}
 function valid_move(who, dr, dc, ir, ic, board){
   if(ir+dr<0 || ir+dr>7){
     return false;
