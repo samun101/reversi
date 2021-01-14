@@ -156,11 +156,11 @@ socket.on('player_disconnected',function(payload){
 });
 
 socket.on('request_game_response',function(payload){
-  console.log(JSON.stringify(payload));
-  replay_id=payload.game_id;
-  var board = payload.board;
+//  console.log(JSON.stringify(payload));
+  replay_id=payload[0].game_id;
+  var board = payload[0].board;
   reset_board(board);
-  $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+payload.game_id+','+5+')">Next Turn</button>')
+  $('#turn_buttons_last').html('<button class="btn btn-outline-info" onclick="go_to_turn('+payload[0].game_id+','+5+')">Next Turn</button>')
   display_board(board);
 });
 
@@ -219,7 +219,7 @@ socket.on('invited',function(payload){
 });
 
 socket.on('saved_games',function(payload){
-  console.log('Recieved: '+JSON.stringify(payload));
+//  console.log('Recieved: '+JSON.stringify(payload));
   if(payload.result=='fail'){
     alert(payload.message);
     return;
@@ -229,8 +229,9 @@ socket.on('saved_games',function(payload){
     window.location.href = 'lobby.html?username='+username;
     return;
   }
+//  console.log(payload)
   for(var i in payload){
-    $('#saved_games').append($('<option value="'+i+'">'+payload[i]+'</option>'));
+    $('#saved_games').append($('<option value="'+payload[i].title+'">'+payload[i].title+'</option>'));
   }
   $('.requesting_game').html('<button type="submit" class="btn btn-default btn-primary"> Send</button>')
 });
@@ -433,6 +434,7 @@ function game_start(who){
 function select_replay(){
   var payload = {};
   var game_replay = $('#saved_games').val();
+  console.log($('#saved_games').val());
   payload.requested_game=game_replay;
   socket.emit('request_game',payload);
 }

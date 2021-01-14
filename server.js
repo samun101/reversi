@@ -1,9 +1,9 @@
 //Setting up the branch and messing around with SourceTree
 //
 //setup the static file Server
-var static = require('node-static');
-
-var http = require('http');
+const static = require('node-static');
+const http = require('http');
+const mongoose = require('mongoose');
 
 var port = process.env.PORT;
 var directory = __dirname+'/public';
@@ -21,9 +21,33 @@ var app = http.createServer( function(request,response){
     }).resume();
   }).listen(port);
 
+//mongoose.connect('mongodb://localhost:27017/local')
+const SavedGame = mongoose.model('savedGame',{
+  board : Array,
+  player_white:String,
+  player_black:String,
+  turn_end: Number,
+  winner:String,
+  ident: Number,
+  title:String}
+);
+
 console.log('server is running');
 
+mongoose.connect('mongodb+srv://dbSamun:warriors101@cluster0.la2dl.mongodb.net/reversi?retryWrites=true&w=majority');
+/*
+function testing(socket){
 
+  var result = SavedGame.find({},"ident");
+  //console.log(result)
+  return result.exec(function(err,testing){
+  if(err)
+    return console.log(err);
+
+  return console.log(testing[0]);
+ })
+}
+testing()*/
 //setup web socket Server
 //Registry of players and player info
 var players =[];
@@ -125,9 +149,15 @@ io.sockets.on('connection', function(socket){
     if(room !== 'lobby' && room !== 'replays'){
       send_game_update(socket,room,'initial update');
     }
+
+
+
     else if (room=='replays') {
-      socket.emit('saved_games',send_saved_games(socket));
+      send_saved_games(socket);
     }
+
+
+
   });
 
   socket.on('disconnect',function(){
@@ -703,12 +733,17 @@ io.sockets.on('connection', function(socket){
                 message:error_message});
             return ;
       }
-      var response ={};
-      response.game_id = payload.requested_game;
-      for(var i in saved_games[payload.requested_game]){
-        response[i] = saved_games[payload.requested_game][i];
-      }
-      socket.emit('request_game_response',response);
+
+      var result = SavedGame.find({"title":payload.requested_game},);
+      //console.log(result)
+      return result.exec(function(err,testing){
+      if(err)
+        return console.log(err);
+//      console.log("sent")
+//      console.log(JSON.stringify(testing))
+      socket.emit('request_game_response', testing);
+     })
+
     });
 
   /*replay_turn command
@@ -809,6 +844,7 @@ var saved_games = {
       player_black:'Samun101',
       turn_end: 2,
       winner:'Samundson',
+      ident: 101,
       title:'Example_Game'},
     }
 var saved_games_index = {101:'Example_Game'};
@@ -837,6 +873,7 @@ function create_new_game(){
     [0,0,0,0,0,0,0,0]
   ];
   new_game.legal_moves = calculate_valid_moves(new_game.turn_count,new_game.board);
+  console.log(new_game)
   return new_game;
 };
 
@@ -870,6 +907,7 @@ function save_game(game){
   }
   game_to_save.winner = winner;
   game_to_save.title = white.toString()+' '+game.player_white.username+' vs. ' +black.toString()+ ' '+game.player_black.username;
+  game_to_save.ident = game.last_move_time;
   saved_games[game.last_move_time] = game_to_save;
 };
 
@@ -1133,9 +1171,13 @@ function send_game_update(socket, game_id, message){
 }
 
 function send_saved_games(socket_id){
-  var payload = {};
-  for(var i in saved_games_index){
-    payload[i] = saved_games_index[i];
-  }
-  return payload;
+  var result = SavedGame.find({},"title");
+  //console.log(result)
+  return result.exec(function(err,testing){
+  if(err)
+    return console.log(err);
+//  console.log("sent")
+//  console.log(JSON.stringify(testing))
+  socket_id.emit('saved_games', testing);
+ })
 }
