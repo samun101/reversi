@@ -22,7 +22,7 @@ var app = http.createServer( function(request,response){
   }).listen(port);
 
 //mongoose.connect('mongodb://localhost:27017/local')
-const SavedGame = mongoose.model('savedGame',{
+const SavedGame = mongoose.model('savedgame',{
   board : Array,
   player_white:String,
   player_black:String,
@@ -554,7 +554,7 @@ io.sockets.on('connection', function(socket){
       }
 
       var row = payload.row;
-      console.log(row + 0+ typeof row);
+      //console.log(row + 0+ typeof row);
       if(/*('undefined' === typeof row) || */ row<0 || row>7){
         var error_message = 'didnt specify a valid row'
         log(error_message);
@@ -699,7 +699,7 @@ io.sockets.on('connection', function(socket){
         }
         socket.emit('save_game_response', success_data);
         //console.log(saved_games);
-        console.log(saved_games_index);
+        //console.log(saved_games_index);
   });
 
   /*request_game command
@@ -763,7 +763,7 @@ io.sockets.on('connection', function(socket){
                   'room': failure message
 */
   socket.on('replay_turn', function(payload){
-      console.log(payload);
+      //console.log(payload);
       if(('undefined' === typeof payload) || !payload){
         var error_message = 'replay_turn had no payload, command aborted'
         log(error_message);
@@ -828,7 +828,7 @@ io.sockets.on('connection', function(socket){
         response.turn = payload.turn;
         response.end_turn = saved_games[payload.game].turn_end;
         response.game = payload.game;
-        console.log(response)
+        //console.log(response)
         socket.emit('replay_turn_response',response);
       });
 });
@@ -877,17 +877,12 @@ function create_new_game(){
     [0,0,0,0,0,0,0,0]
   ];
   new_game.legal_moves = calculate_valid_moves(new_game.turn_count,new_game.board);
-  console.log(new_game)
+  //console.log(new_game)
   return new_game;
 };
 
 function save_game(game){
-  var game_to_save = [];
   var winner;
-  game_to_save.board = game.board;
-  game_to_save.player_white = game.player_white.username;
-  game_to_save.player_black = game.player_black.username;
-  game_to_save.turn_end = game.turn_count;
   var black=0;
   var white=0;
   for(row=0;row<8;row++){
@@ -909,9 +904,26 @@ function save_game(game){
   else{
     winner = 'Unknown';
   }
-  game_to_save.winner = winner;
-  game_to_save.title = white.toString()+' '+game.player_white.username+' vs. ' +black.toString()+ ' '+game.player_black.username;
-  game_to_save.ident = game.last_move_time;
+  var game_to_save = new SavedGame({
+    board:game.board,
+    player_white:game.player_white.username,
+    player_black:game.player_black.username,
+    turn_end:game.turn_count,
+    winner:winner,
+    title:white.toString()+' '+game.player_white.username+' vs. ' +black.toString()+ ' '+game.player_black.username,
+    ident:game.last_move_time
+  },false)
+  //console.log("game being saved")
+  //console.log(game_to_save)
+
+  SavedGame.findOneAndUpdate({ident:game.last_move_time},game_to_save,{strict:false,upsert:true},function(err,result){
+    if(err){
+      console.log(err);
+    }
+    else{
+      //console.log(result)
+    }
+  })
   saved_games[game.last_move_time] = game_to_save;
 };
 
@@ -1128,7 +1140,7 @@ function send_game_update(socket, game_id, message){
       message:message,
       game_id:game_id
   };
-  console.log(games);
+  //console.log(games);
   io.in(game_id).emit('game_update',success_data);
 
   //check if game is over

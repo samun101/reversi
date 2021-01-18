@@ -29,7 +29,7 @@ if ('undefined'== typeof chat_room || !chat_room) {
 var socket = io.connect();
 //when sever sends log messages
 socket.on('log', function(array){
-  console.log.apply(console,array);
+  //console.log.apply(console,array);
 });
 
 //variables for functions to work
@@ -437,7 +437,7 @@ function game_start(who){
 function select_replay(){
   var payload = {};
   var game_replay = $('#saved_games').val();
-  console.log($('#saved_games').val());
+  //console.log($('#saved_games').val());
   payload.requested_game=game_replay;
   socket.emit('request_game',payload);
 }
@@ -477,11 +477,11 @@ function request_(){
 }
 
 function go_to_turn(game, turn){
-  console.log("getting here")
+  //console.log("getting here")
   var payload ={}
   payload.game = game;
   payload.turn = turn;
-  console.log(payload);
+  //console.log(payload);
   socket.emit('replay_turn',payload);
 }
 
