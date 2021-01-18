@@ -826,7 +826,7 @@ io.sockets.on('connection', function(socket){
         }
         response.board = pboard;
         response.turn = payload.turn;
-        response.end_turn = saved_games[payload.game_id].turn_end;
+        response.end_turn = saved_games[payload.game].turn_end;
         response.game = payload.game;
         console.log(response)
         socket.emit('replay_turn_response',response);
@@ -916,7 +916,8 @@ function save_game(game){
 };
 
 function hold_game(game){
-  saved_games[game.ident]=game
+  saved_games[game[0].ident]=game[0];
+//  console.log(saved_games)
 }
 function valid_move(who, dr, dc, ir, ic, board){
   if(ir+dr<0 || ir+dr>7){
