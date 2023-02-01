@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/samun101/reversi#readme",
   "dependencies": {
-    "mongoose": "^5.11.11",
+    "mongoose": "^5.13.15",
     "node-static": "^0.7.11",
     "socket.io": "^2.3.0"
   }
